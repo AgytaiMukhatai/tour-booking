@@ -182,6 +182,32 @@ Potential features to add:
 - Interactive maps
 - Social media sharing
 
+## Changelog
+
+### Version 1.1.0 - 2025-12-18 15:52 PM
+**Project Restructuring**
+- Reorganized project structure by moving all frontend files to `frontend/` directory
+- Updated README with new folder structure and installation paths
+- Prepared architecture for future backend integration
+- Maintained git history by using proper file renames
+
+### Version 1.0.0 - 2025-12-18 15:43 PM
+**Initial Release**
+- Created complete tour booking website frontend
+- Implemented React 18 with Vite build tool
+- Added React Router 6 for client-side navigation
+- Integrated Tailwind CSS for responsive styling
+- Built core features:
+  - Tours listing page with 10 curated tours
+  - Advanced filtering system (category, location, price, duration, search)
+  - Individual tour detail pages with comprehensive information
+  - Complete booking system with form validation
+  - Booking confirmation page
+- Added mock data for 10 diverse international tours
+- Implemented responsive design for mobile, tablet, and desktop
+- Created reusable components (Header, Footer, TourCard, FilterSection)
+- Set up three main pages (ToursPage, TourDetailPage, BookingPage)
+
 ## License
 
 This project is open source and available under the MIT License.
