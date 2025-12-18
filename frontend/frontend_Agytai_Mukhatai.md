@@ -6,6 +6,7 @@ A modern, responsive tour booking frontend application built with React, Vite, a
 
 ## Features
 
+### Core Features
 - **Tour Listings**: Browse through a curated selection of 10 amazing tours worldwide
 - **Advanced Filters**: Filter tours by category, location, price range, duration, and search by keywords
 - **Tour Details**: View comprehensive information about each tour including highlights, what's included, available dates, and more
@@ -13,12 +14,42 @@ A modern, responsive tour booking frontend application built with React, Vite, a
 - **Responsive Design**: Fully responsive layout that works on desktop, tablet, and mobile devices
 - **Modern UI**: Clean, professional design with smooth transitions and hover effects
 
+### Authentication & User Management
+- **User Registration**: Create an account with email and password
+- **User Login**: Secure authentication with demo account support
+- **User Profile Dashboard**: Comprehensive user dashboard with three main sections:
+  - My Bookings: View and manage active bookings
+  - My Ratings: View all your tour ratings and reviews
+  - Booking History: Complete history of all bookings
+- **Protected Routes**: Booking and profile pages require authentication
+- **Auto-filled Forms**: User information automatically populated in booking forms
+
+### Booking Management
+- **Create Bookings**: Book tours with date selection and guest count
+- **View Bookings**: See all your active and past bookings
+- **Cancel Bookings**: Cancel bookings directly from your dashboard
+- **Booking Status**: Track booking status (confirmed/cancelled)
+- **Persistent Storage**: All bookings saved to local storage
+
+### Rating System
+- **Rate Tours**: 5-star rating system with optional review text
+- **View Ratings**: See all your submitted ratings
+- **Update Ratings**: Modify existing ratings for tours
+- **Rating History**: Complete history of all your tour reviews
+
+### Demo Account
+- **Email**: demo@example.com
+- **Password**: password123
+- Pre-initialized on first load for easy testing
+
 ## Technology Stack
 
-- **React 18**: Modern React with hooks
+- **React 18**: Modern React with hooks and Context API
 - **Vite**: Fast build tool and dev server
-- **React Router 6**: Client-side routing
+- **React Router 6**: Client-side routing with protected routes
 - **Tailwind CSS**: Utility-first CSS framework
+- **LocalStorage**: User data and authentication persistence
+- **Context API**: Global state management for authentication
 - **Mock Data**: Pre-populated with 10 diverse tour options
 
 ## Tours Categories
@@ -79,14 +110,23 @@ npm run preview
 frontend/                             # This directory
 ├── src/
 │   ├── components/
-│   │   ├── Header.jsx               # Navigation header
+│   │   ├── Header.jsx               # Navigation header with auth menu
 │   │   ├── Footer.jsx               # Site footer
 │   │   ├── TourCard.jsx             # Tour card component
-│   │   └── FilterSection.jsx       # Filter controls
+│   │   ├── FilterSection.jsx       # Filter controls
+│   │   ├── RatingModal.jsx         # Tour rating modal
+│   │   └── ProtectedRoute.jsx      # Protected route wrapper
 │   ├── pages/
 │   │   ├── ToursPage.jsx            # Main tours listing page
 │   │   ├── TourDetailPage.jsx       # Individual tour details
-│   │   └── BookingPage.jsx          # Booking form and confirmation
+│   │   ├── BookingPage.jsx          # Booking form and confirmation
+│   │   ├── LoginPage.jsx            # User login page
+│   │   ├── RegisterPage.jsx         # User registration page
+│   │   └── ProfilePage.jsx          # User dashboard (bookings/ratings)
+│   ├── context/
+│   │   └── AuthContext.jsx          # Authentication context provider
+│   ├── utils/
+│   │   └── initDemoUser.js          # Demo user initialization
 │   ├── data/
 │   │   └── tours.js                 # Mock tour data
 │   ├── App.jsx                      # Main app component with routing
@@ -112,8 +152,14 @@ tour-booking/                        # Project root
 
 ## Available Routes
 
+### Public Routes
 - `/` or `/tours` - Main tours listing page with filters
 - `/tours/:id` - Individual tour detail page
+- `/login` - User login page
+- `/register` - User registration page
+
+### Protected Routes (Requires Authentication)
+- `/profile` - User dashboard with bookings and ratings
 - `/booking/:tourId` - Booking form for a specific tour
 
 ## Features in Detail
@@ -181,18 +227,65 @@ The project uses Tailwind CSS. To customize:
 ## Future Enhancements
 
 Potential features to add:
-- Backend API integration
-- User authentication and profiles
-- Payment processing integration
-- Reviews and ratings system
-- Wishlist/favorites functionality
-- Email notifications
+- Backend API integration (Node.js/Express or similar)
+- Payment processing integration (Stripe, PayPal)
+- Email notifications for bookings and confirmations
 - Admin panel for tour management
-- Image gallery for tours
-- Interactive maps
-- Social media sharing
+- Image gallery for tours with multiple photos
+- Interactive maps showing tour locations
+- Social media sharing for tours
+- Wishlist/favorites functionality
+- Tour availability calendar
+- Group booking discounts
+- Multi-language support
+- Currency converter
 
 ## Changelog
+
+### Version 2.0.0 - 2025-12-18 16:30 PM
+**Authentication & User Management Release**
+- **Authentication System**:
+  - User registration with email validation
+  - User login with secure authentication
+  - Demo account pre-initialized (demo@example.com / password123)
+  - Protected routes requiring authentication
+  - Persistent authentication using LocalStorage
+  - Auto-logout when session expires
+- **User Profile Dashboard**:
+  - My Bookings tab: View and manage active bookings
+  - My Ratings tab: View all submitted tour ratings
+  - Booking History tab: Complete history with filterable table
+  - User avatar with initials in header
+  - Dropdown menu with profile and logout options
+- **Booking Management**:
+  - Create new bookings (requires authentication)
+  - View all user bookings
+  - Cancel bookings with confirmation
+  - Booking status tracking (confirmed/cancelled)
+  - Auto-filled forms with user information
+  - Persistent booking storage
+- **Rating System**:
+  - 5-star rating with interactive UI
+  - Optional review text for detailed feedback
+  - View all user ratings in profile
+  - Update existing ratings
+  - Rating modal with validation
+- **New Components**:
+  - AuthContext: Global authentication state
+  - LoginPage: User login with error handling
+  - RegisterPage: New user registration
+  - ProfilePage: Comprehensive user dashboard
+  - RatingModal: Interactive rating component
+  - ProtectedRoute: Route protection wrapper
+- **Updated Components**:
+  - Header: User menu, auth buttons, avatar dropdown
+  - BookingPage: Integration with user authentication
+  - App: AuthProvider wrapper and new routes
+- **Technical Improvements**:
+  - Context API for state management
+  - LocalStorage for data persistence
+  - Form validation and error handling
+  - Responsive design for all new pages
 
 ### Version 1.2.0 - 2025-12-18 16:07 PM
 **Documentation Restructure**

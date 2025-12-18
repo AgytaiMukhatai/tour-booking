@@ -1,16 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { tours } from '../data/tours'
 
 function BookingPage() {
   const { tourId } = useParams()
   const navigate = useNavigate()
+  const { user, addBooking } = useAuth()
   const tour = tours.find(t => t.id === parseInt(tourId))
 
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
     phone: '',
     date: '',
     guests: 1,
@@ -18,6 +20,18 @@ function BookingPage() {
   })
 
   const [submitted, setSubmitted] = useState(false)
+  const [bookingDetails, setBookingDetails] = useState(null)
+
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email
+      }))
+    }
+  }, [user])
 
   const handleChange = (e) => {
     setFormData({
@@ -28,7 +42,16 @@ function BookingPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log('Booking submitted:', { tour: tour.title, ...formData })
+
+    const booking = {
+      tourId: tour.id,
+      tourTitle: tour.title,
+      ...formData,
+      totalPrice: tour.price * formData.guests
+    }
+
+    const savedBooking = addBooking(booking)
+    setBookingDetails(savedBooking)
     setSubmitted(true)
   }
 
