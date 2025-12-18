@@ -1,6 +1,8 @@
-# Tour Booking Website
+# Tour Booking - Frontend Documentation
 
-A modern, responsive tour booking website built with React, Vite, and Tailwind CSS.
+A modern, responsive tour booking frontend application built with React, Vite, and Tailwind CSS.
+
+> **Note**: This is the frontend documentation. For the main project overview, see [../README.md](../README.md)
 
 ## Features
 
@@ -36,8 +38,9 @@ A modern, responsive tour booking website built with React, Vite, and Tailwind C
 
 ### Installation
 
-1. Navigate to the frontend directory:
+1. Make sure you're in the frontend directory:
 ```bash
+# From project root
 cd frontend
 ```
 
@@ -59,45 +62,52 @@ http://localhost:5174
 ### Build for Production
 
 ```bash
-cd frontend
 npm run build
 ```
 
-The production-ready files will be in the `frontend/dist` folder.
+The production-ready files will be in the `dist` folder.
 
 ### Preview Production Build
 
 ```bash
-cd frontend
 npm run preview
 ```
 
-## Project Structure
+## Frontend Structure
 
 ```
-tour-booking/
-├── frontend/                    # Frontend application
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Header.jsx          # Navigation header
-│   │   │   ├── Footer.jsx          # Site footer
-│   │   │   ├── TourCard.jsx        # Tour card component
-│   │   │   └── FilterSection.jsx  # Filter controls
-│   │   ├── pages/
-│   │   │   ├── ToursPage.jsx       # Main tours listing page
-│   │   │   ├── TourDetailPage.jsx  # Individual tour details
-│   │   │   └── BookingPage.jsx     # Booking form and confirmation
-│   │   ├── data/
-│   │   │   └── tours.js            # Mock tour data
-│   │   ├── App.jsx                 # Main app component with routing
-│   │   ├── main.jsx                # App entry point
-│   │   └── index.css               # Global styles with Tailwind
-│   ├── index.html
-│   ├── package.json
-│   ├── vite.config.js
-│   ├── tailwind.config.js
-│   └── postcss.config.js
-└── README.md                    # Project documentation
+frontend/                             # This directory
+├── src/
+│   ├── components/
+│   │   ├── Header.jsx               # Navigation header
+│   │   ├── Footer.jsx               # Site footer
+│   │   ├── TourCard.jsx             # Tour card component
+│   │   └── FilterSection.jsx       # Filter controls
+│   ├── pages/
+│   │   ├── ToursPage.jsx            # Main tours listing page
+│   │   ├── TourDetailPage.jsx       # Individual tour details
+│   │   └── BookingPage.jsx          # Booking form and confirmation
+│   ├── data/
+│   │   └── tours.js                 # Mock tour data
+│   ├── App.jsx                      # Main app component with routing
+│   ├── main.jsx                     # App entry point
+│   └── index.css                    # Global styles with Tailwind
+├── frontend_Agytai_Mukhatai.md     # This documentation file
+├── index.html
+├── package.json
+├── vite.config.js
+├── tailwind.config.js
+└── postcss.config.js
+```
+
+### Full Project Structure
+
+```
+tour-booking/                        # Project root
+├── frontend/                        # Frontend application (this directory)
+│   └── ...                          # Files listed above
+├── backend/                         # Backend (coming soon)
+└── README.md                        # Project overview
 ```
 
 ## Available Routes
@@ -138,7 +148,7 @@ Each tour includes:
 
 ### Adding New Tours
 
-Edit `frontend/src/data/tours.js` to add new tours with the following structure:
+Edit `src/data/tours.js` (in this directory) to add new tours with the following structure:
 
 ```javascript
 {
@@ -164,9 +174,9 @@ Edit `frontend/src/data/tours.js` to add new tours with the following structure:
 ### Styling
 
 The project uses Tailwind CSS. To customize:
-- Modify `frontend/tailwind.config.js` for theme customization
+- Modify `tailwind.config.js` for theme customization
 - Edit color schemes in the `theme.extend.colors` section
-- Add custom CSS in `frontend/src/index.css`
+- Add custom CSS in `src/index.css`
 
 ## Future Enhancements
 
@@ -183,6 +193,14 @@ Potential features to add:
 - Social media sharing
 
 ## Changelog
+
+### Version 1.2.0 - 2025-12-18 16:07 PM
+**Documentation Restructure**
+- Renamed main README to `frontend_Agytai_Mukhatai.md` (this file)
+- Created new root README as monorepo project overview
+- Updated documentation to reflect monorepo structure
+- Organized documentation by component (frontend/backend)
+- Prepared for future backend integration
 
 ### Version 1.1.0 - 2025-12-18 15:52 PM
 **Project Restructuring**
