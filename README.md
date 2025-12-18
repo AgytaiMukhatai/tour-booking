@@ -36,17 +36,22 @@ A modern, responsive tour booking website built with React, Vite, and Tailwind C
 
 ### Installation
 
-1. Install dependencies:
+1. Navigate to the frontend directory:
+```bash
+cd frontend
+```
+
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-2. Start the development server:
+3. Start the development server:
 ```bash
 npm run dev
 ```
 
-3. Open your browser and navigate to:
+4. Open your browser and navigate to:
 ```
 http://localhost:5174
 ```
@@ -54,41 +59,45 @@ http://localhost:5174
 ### Build for Production
 
 ```bash
+cd frontend
 npm run build
 ```
 
-The production-ready files will be in the `dist` folder.
+The production-ready files will be in the `frontend/dist` folder.
 
 ### Preview Production Build
 
 ```bash
+cd frontend
 npm run preview
 ```
 
 ## Project Structure
 
 ```
-tour-booking_room-7/
-├── src/
-│   ├── components/
-│   │   ├── Header.jsx          # Navigation header
-│   │   ├── Footer.jsx          # Site footer
-│   │   ├── TourCard.jsx        # Tour card component
-│   │   └── FilterSection.jsx  # Filter controls
-│   ├── pages/
-│   │   ├── ToursPage.jsx       # Main tours listing page
-│   │   ├── TourDetailPage.jsx  # Individual tour details
-│   │   └── BookingPage.jsx     # Booking form and confirmation
-│   ├── data/
-│   │   └── tours.js            # Mock tour data
-│   ├── App.jsx                 # Main app component with routing
-│   ├── main.jsx                # App entry point
-│   └── index.css               # Global styles with Tailwind
-├── index.html
-├── package.json
-├── vite.config.js
-├── tailwind.config.js
-└── postcss.config.js
+tour-booking/
+├── frontend/                    # Frontend application
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Header.jsx          # Navigation header
+│   │   │   ├── Footer.jsx          # Site footer
+│   │   │   ├── TourCard.jsx        # Tour card component
+│   │   │   └── FilterSection.jsx  # Filter controls
+│   │   ├── pages/
+│   │   │   ├── ToursPage.jsx       # Main tours listing page
+│   │   │   ├── TourDetailPage.jsx  # Individual tour details
+│   │   │   └── BookingPage.jsx     # Booking form and confirmation
+│   │   ├── data/
+│   │   │   └── tours.js            # Mock tour data
+│   │   ├── App.jsx                 # Main app component with routing
+│   │   ├── main.jsx                # App entry point
+│   │   └── index.css               # Global styles with Tailwind
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   └── postcss.config.js
+└── README.md                    # Project documentation
 ```
 
 ## Available Routes
@@ -129,7 +138,7 @@ Each tour includes:
 
 ### Adding New Tours
 
-Edit `src/data/tours.js` to add new tours with the following structure:
+Edit `frontend/src/data/tours.js` to add new tours with the following structure:
 
 ```javascript
 {
@@ -155,9 +164,9 @@ Edit `src/data/tours.js` to add new tours with the following structure:
 ### Styling
 
 The project uses Tailwind CSS. To customize:
-- Modify `tailwind.config.js` for theme customization
+- Modify `frontend/tailwind.config.js` for theme customization
 - Edit color schemes in the `theme.extend.colors` section
-- Add custom CSS in `src/index.css`
+- Add custom CSS in `frontend/src/index.css`
 
 ## Future Enhancements
 
