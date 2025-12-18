@@ -1,0 +1,14 @@
+{
+  "name": "tour-booking-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.5.0",
+    "express": "^4.19.2"
+  }
+}
