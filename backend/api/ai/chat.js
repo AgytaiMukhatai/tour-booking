@@ -28,12 +28,18 @@ export async function aiChatHandler(req, res) {
       context: context || {}
     });
 
+    // Получаем контекст агента
+    const agentContext = agent.getContext();
+
     res.json({
       success: true,
-      response: response.message,
+      message: response.message,
       tours: response.tours || [],
       recommendations: response.recommendations || [],
-      sessionId: agent.sessionId
+      context: {
+        user_preferences: agentContext.preferences,
+        session_id: agent.sessionId
+      }
     });
 
   } catch (error) {

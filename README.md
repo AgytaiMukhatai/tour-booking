@@ -93,21 +93,33 @@ Send message to AI assistant:
 
 ## AI Rules
 
-Each team member should create a file `ai-rules/ai_<name>.md` with rules for the AI assistant.
+Each team member has created their personal AI rules file:
+
+- **AI Engineer**: [ai-rules/ai_Gaini_Kutumov.md](ai-rules/ai_Gaini_Kutumov.md)
+- **Backend Developer**: [ai-rules/backend_Gaini_Kutumov.md](ai-rules/backend_Gaini_Kutumov.md)
+- **Frontend Developer**: [ai-rules/frontend_Agytai_Mukhatai.md](ai-rules/frontend_Agytai_Mukhatai.md)
+- **QA Engineer**: [ai-rules/qa_Team.md](ai-rules/qa_Team.md)
 
 See template: `ai-rules/ai_template.md`
 
 ## MCP Integration
 
-AI agent supports integration with MCP servers:
-- Context7 MCP - for context management
-- Database MCP - for data operations
+AI agent supports integration with MCP servers using `@modelcontextprotocol/sdk`:
+- **Context7 MCP** - for context management and user preferences
+- **Database MCP** - for data operations and tour queries
+
+### Sub-agents
+
+The AI agent uses specialized sub-agents for complex tasks:
+- **Tour Comparison Sub-agent** - compares multiple tours
+- **Tour Details Sub-agent** - provides detailed tour information with personalization
 
 ## Documentation
 
 - **Frontend Documentation**: [frontend/frontend_Agytai_Mukhatai.md](frontend/frontend_Agytai_Mukhatai.md)
 - **Backend Documentation**: [backend/README.md](backend/README.md)
 - **AI Agent Architecture**: [ai-agent/AGENT_ARCHITECTURE.md](ai-agent/AGENT_ARCHITECTURE.md)
+- **Workflow & Process**: [WORKFLOW.md](WORKFLOW.md) - полное описание процесса разработки с использованием AI
 
 ## Development
 

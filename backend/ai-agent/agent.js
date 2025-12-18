@@ -1,13 +1,17 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import OpenAI from 'openai';
+import { MCPClient } from './mcp-client.js';
+import { compareTours, generateComparisonText } from './features/compare-tours.js';
+import { getTourDetails, generateDetailsText } from './features/tour-details.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
  * AI Agent для подбора туров
- * Использует системный промпт и логику для обработки запросов
+ * Использует OpenAI API и MCP серверы для обработки запросов
  */
 export class AIAgent {
   constructor(sessionId = 'default') {
@@ -17,8 +21,19 @@ export class AIAgent {
       history: []
     };
     
+    // Инициализация OpenAI клиента
+    this.openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || '',
+    });
+
+    // Инициализация MCP клиента
+    this.mcpClient = new MCPClient();
+    
     // Загружаем системный промпт
     this.systemPrompt = this.loadSystemPrompt();
+    
+    // Модель по умолчанию
+    this.model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
   }
 
   /**
@@ -27,17 +42,33 @@ export class AIAgent {
   loadSystemPrompt() {
     try {
       const promptPath = path.join(__dirname, '../../ai-agent/prompts/system-prompt.md');
-      return fs.readFileSync(promptPath, 'utf-8');
+      let prompt = fs.readFileSync(promptPath, 'utf-8');
+      
+      // Добавляем информацию о доступных инструментах
+      prompt += '\n\n## Доступные инструменты через MCP:\n';
+      prompt += '- search_tours(params) - поиск туров по параметрам\n';
+      prompt += '- get_tour_details(tour_id) - детали тура\n';
+      prompt += '- compare_tours(tour_ids) - сравнение туров\n';
+      prompt += '- save_user_preferences(prefs) - сохранение предпочтений\n';
+      prompt += '- get_user_history() - история запросов\n';
+      
+      return prompt;
     } catch (error) {
       // Fallback промпт
       return `Ты - AI ассистент для платформы бронирования туров. 
 Помогай пользователям найти идеальный тур, учитывая их предпочтения, бюджет и даты.
-Будь дружелюбным и профессиональным.`;
+Будь дружелюбным и профессиональным.
+
+Доступные инструменты:
+- search_tours - поиск туров
+- get_tour_details - детали тура
+- compare_tours - сравнение туров
+- save_user_preferences - сохранение предпочтений`;
     }
   }
 
   /**
-   * Обработка сообщения пользователя
+   * Обработка сообщения пользователя с использованием LLM
    */
   async processMessage(userMessage, data = {}) {
     const { tours = [], context = {} } = data;
@@ -45,170 +76,431 @@ export class AIAgent {
     // Сохраняем в историю
     this.context.history.push({
       role: 'user',
-      message: userMessage,
+      content: userMessage,
       timestamp: new Date().toISOString()
     });
 
-    // Анализируем запрос
-    const analysis = this.analyzeRequest(userMessage);
-    
-    // Ищем подходящие туры
-    const matchingTours = this.searchTours(tours, analysis);
-    
-    // Генерируем ответ
-    const response = this.generateResponse(userMessage, matchingTours, analysis);
+    try {
+      // Получаем контекст пользователя через Context7 MCP
+      const userContext = await this.mcpClient.callTool('context7', 'get_user_context', {
+        preferences: this.context.preferences,
+        history: this.context.history
+      });
 
-    // Сохраняем ответ в историю
-    this.context.history.push({
-      role: 'assistant',
-      message: response.message,
-      timestamp: new Date().toISOString()
-    });
+      // Формируем сообщения для LLM
+      const messages = [
+        {
+          role: 'system',
+          content: this.systemPrompt
+        },
+        ...this.buildConversationHistory(),
+        {
+          role: 'user',
+          content: userMessage
+        }
+      ];
 
-    // Обновляем предпочтения
-    if (analysis.preferences) {
-      this.context.preferences = {
-        ...this.context.preferences,
-        ...analysis.preferences
+      // Вызываем LLM с функциями (tools)
+      const completion = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: messages,
+        tools: this.getAvailableTools(),
+        tool_choice: 'auto',
+        temperature: 0.7,
+        max_tokens: 1000
+      });
+
+      const assistantMessage = completion.choices[0].message;
+      let responseMessage = assistantMessage.content || '';
+      let recommendedTours = [];
+
+      // Обрабатываем вызовы инструментов
+      if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+        const toolResults = await this.processToolCalls(
+          assistantMessage.tool_calls,
+          tours
+        );
+
+        // Формируем финальный ответ с результатами инструментов
+        const finalMessages = [
+          ...messages,
+          assistantMessage,
+          ...toolResults
+        ];
+
+        const finalCompletion = await this.openai.chat.completions.create({
+          model: this.model,
+          messages: finalMessages,
+          temperature: 0.7,
+          max_tokens: 1000
+        });
+
+        responseMessage = finalCompletion.choices[0].message.content || responseMessage;
+        
+        // Извлекаем туры из результатов инструментов
+        recommendedTours = this.extractToursFromToolResults(toolResults);
+      }
+
+      // Сохраняем ответ в историю
+      this.context.history.push({
+        role: 'assistant',
+        content: responseMessage,
+        timestamp: new Date().toISOString()
+      });
+
+      // Сохраняем предпочтения через Context7 MCP
+      if (this.context.preferences && Object.keys(this.context.preferences).length > 0) {
+        await this.mcpClient.callTool('context7', 'save_user_preferences', {
+          sessionId: this.sessionId,
+          preferences: this.context.preferences
+        });
+      }
+
+      return {
+        message: responseMessage,
+        tours: recommendedTours,
+        recommendations: recommendedTours.map(tour => ({
+          id: tour.id,
+          title: tour.title,
+          reason: 'Рекомендован на основе ваших предпочтений'
+        }))
       };
+
+    } catch (error) {
+      console.error('AI Agent Error:', error);
+      
+      // Fallback на простую логику, если LLM недоступен
+      return this.fallbackResponse(userMessage, tours);
+    }
+  }
+
+  /**
+   * Получение доступных инструментов для LLM
+   */
+  getAvailableTools() {
+    return [
+      {
+        type: 'function',
+        function: {
+          name: 'search_tours',
+          description: 'Поиск туров по критериям (страна, бюджет, категория, даты)',
+          parameters: {
+            type: 'object',
+            properties: {
+              country: { type: 'string', description: 'Название страны' },
+              price_min: { type: 'number', description: 'Минимальная цена' },
+              price_max: { type: 'number', description: 'Максимальная цена' },
+              category: { type: 'string', description: 'Категория тура (adventure, cultural, wildlife, beach, nature)' },
+              duration: { type: 'number', description: 'Длительность в днях' }
+            }
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'get_tour_details',
+          description: 'Получить детальную информацию о туре',
+          parameters: {
+            type: 'object',
+            properties: {
+              tour_id: { type: 'string', description: 'ID тура' }
+            },
+            required: ['tour_id']
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'compare_tours',
+          description: 'Сравнить несколько туров',
+          parameters: {
+            type: 'object',
+            properties: {
+              tour_ids: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Массив ID туров для сравнения'
+              }
+            },
+            required: ['tour_ids']
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'save_user_preferences',
+          description: 'Сохранить предпочтения пользователя',
+          parameters: {
+            type: 'object',
+            properties: {
+              country: { type: 'string' },
+              budget: { type: 'number' },
+              category: { type: 'string' },
+              dates: { type: 'string' }
+            }
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'get_user_history',
+          description: 'Получить историю запросов пользователя и сохраненные предпочтения',
+          parameters: {
+            type: 'object',
+            properties: {}
+          }
+        }
+      }
+    ];
+  }
+
+  /**
+   * Обработка вызовов инструментов
+   */
+  async processToolCalls(toolCalls, availableTours = []) {
+    const toolResults = [];
+
+    for (const toolCall of toolCalls) {
+      const { name, arguments: args } = toolCall.function;
+      const parsedArgs = JSON.parse(args);
+
+      try {
+        let result;
+
+        switch (name) {
+          case 'search_tours':
+            // Поиск туров в доступных данных
+            result = this.searchToursInData(availableTours, parsedArgs);
+            await this.mcpClient.callTool('database', 'search_tours', {
+              tours: result,
+              params: parsedArgs
+            });
+            break;
+
+          case 'get_tour_details':
+            // Используем sub-agent для получения деталей тура
+            const tour = availableTours.find(t => String(t.id) === String(parsedArgs.tour_id));
+            if (!tour) {
+              result = { error: 'Тур не найден', tour: null };
+            } else {
+              const tourDetails = getTourDetails(tour, this.context.preferences);
+              const detailsText = generateDetailsText(tourDetails);
+              result = { 
+                tour: tourDetails,
+                detailsText,
+                availability: true 
+              };
+            }
+            await this.mcpClient.callTool('database', 'get_tour_details', result);
+            break;
+
+          case 'compare_tours':
+            // Используем sub-agent для сравнения туров
+            const toursToCompare = availableTours.filter(t => 
+              parsedArgs.tour_ids.includes(String(t.id))
+            );
+            const comparison = compareTours(toursToCompare);
+            const comparisonText = generateComparisonText(comparison);
+            result = { 
+              comparison,
+              comparisonText,
+              tours: toursToCompare
+            };
+            await this.mcpClient.callTool('database', 'compare_tours', result);
+            break;
+
+          case 'save_user_preferences':
+            this.context.preferences = { ...this.context.preferences, ...parsedArgs };
+            result = await this.mcpClient.callTool('context7', 'save_user_preferences', {
+              sessionId: this.sessionId,
+              preferences: this.context.preferences
+            });
+            break;
+
+          case 'get_user_history':
+            result = await this.mcpClient.callTool('context7', 'get_user_history', {
+              sessionId: this.sessionId,
+              history: this.context.history,
+              preferences: this.context.preferences
+            });
+            break;
+
+          default:
+            result = { error: `Unknown tool: ${name}` };
+        }
+
+        toolResults.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          name: name,
+          content: JSON.stringify(result)
+        });
+
+      } catch (error) {
+        console.error(`Tool call error [${name}]:`, error);
+        toolResults.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          name: name,
+          content: JSON.stringify({ error: error.message })
+        });
+      }
+    }
+
+    return toolResults;
+  }
+
+  /**
+   * Поиск туров в данных
+   */
+  searchToursInData(tours, criteria) {
+    let filtered = [...tours];
+
+    if (criteria.country) {
+      filtered = filtered.filter(t => 
+        t.country.toLowerCase().includes(criteria.country.toLowerCase())
+      );
+    }
+
+    if (criteria.category) {
+      filtered = filtered.filter(t => 
+        t.category.toLowerCase() === criteria.category.toLowerCase()
+      );
+    }
+
+    if (criteria.price_min) {
+      filtered = filtered.filter(t => t.price >= criteria.price_min);
+    }
+
+    if (criteria.price_max) {
+      filtered = filtered.filter(t => t.price <= criteria.price_max);
+    }
+
+    if (criteria.duration) {
+      filtered = filtered.filter(t => t.duration === criteria.duration);
+    }
+
+    return filtered.slice(0, 5);
+  }
+
+  /**
+   * Сравнение туров
+   */
+  compareToursData(tours) {
+    if (tours.length < 2) {
+      return { error: 'Need at least 2 tours to compare' };
     }
 
     return {
-      message: response.message,
-      tours: response.tours,
-      recommendations: response.recommendations
+      tours: tours.map(t => ({
+        id: t.id,
+        title: t.title,
+        country: t.country,
+        price: t.price,
+        duration: t.duration,
+        category: t.category
+      })),
+      differences: {
+        priceRange: {
+          min: Math.min(...tours.map(t => t.price)),
+          max: Math.max(...tours.map(t => t.price))
+        },
+        durationRange: {
+          min: Math.min(...tours.map(t => t.duration)),
+          max: Math.max(...tours.map(t => t.duration))
+        }
+      }
     };
   }
 
   /**
-   * Анализ запроса пользователя
+   * Извлечение туров из результатов инструментов
    */
-  analyzeRequest(message) {
-    const lowerMessage = message.toLowerCase();
+  extractToursFromToolResults(toolResults) {
+    const tours = [];
     
-    const analysis = {
-      preferences: {},
-      intent: 'search',
-      keywords: []
-    };
-
-    // Извлечение страны
-    const countries = ['switzerland', 'japan', 'kenya', 'maldives', 'norway', 
-                      'турция', 'turkey', 'египет', 'egypt', 'испания', 'spain'];
-    for (const country of countries) {
-      if (lowerMessage.includes(country.toLowerCase())) {
-        analysis.preferences.country = country;
-        analysis.keywords.push(country);
-        break;
+    for (const result of toolResults) {
+      try {
+        const content = JSON.parse(result.content);
+        if (content.tours && Array.isArray(content.tours)) {
+          tours.push(...content.tours);
+        } else if (content.tour) {
+          tours.push(content.tour);
+        }
+      } catch (e) {
+        // Игнорируем ошибки парсинга
       }
     }
-
-    // Извлечение бюджета
-    const budgetMatch = message.match(/(\d+)\s*(тенге|₸|доллар|dollar|\$|usd)/i);
-    if (budgetMatch) {
-      analysis.preferences.budget = parseInt(budgetMatch[1]);
-    }
-
-    // Извлечение категории
-    const categories = {
-      'adventure': ['приключение', 'adventure', 'экстрим', 'extreme'],
-      'cultural': ['культура', 'cultural', 'храм', 'temple', 'традиция'],
-      'wildlife': ['сафари', 'safari', 'животные', 'wildlife'],
-      'beach': ['пляж', 'beach', 'отдых', 'relax'],
-      'nature': ['природа', 'nature', 'северное сияние', 'northern lights']
-    };
-
-    for (const [category, keywords] of Object.entries(categories)) {
-      if (keywords.some(keyword => lowerMessage.includes(keyword))) {
-        analysis.preferences.category = category;
-        break;
-      }
-    }
-
-    // Определение намерения
-    if (lowerMessage.includes('сравнить') || lowerMessage.includes('compare')) {
-      analysis.intent = 'compare';
-    } else if (lowerMessage.includes('рекомендация') || lowerMessage.includes('recommend')) {
-      analysis.intent = 'recommend';
-    }
-
-    return analysis;
+    
+    return tours;
   }
 
   /**
-   * Поиск подходящих туров
+   * Построение истории разговора для LLM
    */
-  searchTours(tours, analysis) {
-    let filtered = [...tours];
-
-    // Фильтр по стране
-    if (analysis.preferences.country) {
-      filtered = filtered.filter(tour => 
-        tour.country.toLowerCase().includes(analysis.preferences.country.toLowerCase())
-      );
-    }
-
-    // Фильтр по категории
-    if (analysis.preferences.category) {
-      filtered = filtered.filter(tour => 
-        tour.category.toLowerCase() === analysis.preferences.category.toLowerCase()
-      );
-    }
-
-    // Фильтр по бюджету
-    if (analysis.preferences.budget) {
-      filtered = filtered.filter(tour => tour.price <= analysis.preferences.budget);
-    }
-
-    // Если ничего не найдено, возвращаем все туры
-    if (filtered.length === 0) {
-      filtered = tours.slice(0, 3); // Топ 3 тура
-    }
-
-    return filtered.slice(0, 5); // Максимум 5 туров
+  buildConversationHistory() {
+    return this.context.history
+      .slice(-10) // Последние 10 сообщений
+      .map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content || msg.message
+      }));
   }
 
   /**
-   * Генерация ответа
+   * Fallback ответ, если LLM недоступен
    */
-  generateResponse(userMessage, tours, analysis) {
+  fallbackResponse(userMessage, tours) {
+    const analysis = this.analyzeRequest(userMessage);
+    const matchingTours = this.searchToursInData(tours, analysis.preferences || {});
+    
     let message = '';
-    let recommendations = [];
-
-    if (tours.length === 0) {
-      message = 'К сожалению, я не нашел туров по вашим критериям. Попробуйте изменить параметры поиска или уточните, что именно вас интересует?';
-    } else if (tours.length === 1) {
-      const tour = tours[0];
-      message = `Отлично! Я нашел для вас идеальный тур:\n\n` +
-                `🏔️ **${tour.title}**\n` +
-                `📍 ${tour.country}\n` +
-                `💰 Цена: $${tour.price}\n` +
-                `⏱️ Длительность: ${tour.duration} дней\n` +
-                `📝 ${tour.description}\n\n` +
-                `Этот тур идеально подходит под ваши критерии! Хотите узнать больше деталей?`;
-      recommendations.push(tour);
+    if (matchingTours.length === 0) {
+      message = 'К сожалению, я не нашел туров по вашим критериям. Попробуйте изменить параметры поиска.';
     } else {
-      message = `Я нашел ${tours.length} подходящих туров для вас:\n\n`;
-      
-      tours.forEach((tour, index) => {
+      message = `Я нашел ${matchingTours.length} подходящих туров:\n\n`;
+      matchingTours.forEach((tour, index) => {
         message += `${index + 1}. **${tour.title}** - ${tour.country}\n`;
-        message += `   💰 $${tour.price} | ⏱️ ${tour.duration} дней\n`;
-        message += `   📝 ${tour.description}\n\n`;
-        recommendations.push(tour);
+        message += `   💰 $${tour.price} | ⏱️ ${tour.duration} дней\n\n`;
       });
-
-      message += `Какой тур вас больше всего интересует? Могу рассказать подробнее о любом из них!`;
     }
 
     return {
       message,
-      tours: recommendations,
-      recommendations: recommendations.map(tour => ({
+      tours: matchingTours,
+      recommendations: matchingTours.map(tour => ({
         id: tour.id,
         title: tour.title,
-        reason: `Подходит по критериям: ${analysis.preferences.country ? 'страна' : ''} ${analysis.preferences.category ? 'категория' : ''} ${analysis.preferences.budget ? 'бюджет' : ''}`
+        reason: 'Найден по вашим критериям'
       }))
     };
+  }
+
+  /**
+   * Простой анализ запроса (fallback)
+   */
+  analyzeRequest(message) {
+    const lowerMessage = message.toLowerCase();
+    const analysis = { preferences: {} };
+
+    const countries = ['switzerland', 'japan', 'kenya', 'maldives', 'norway'];
+    for (const country of countries) {
+      if (lowerMessage.includes(country.toLowerCase())) {
+        analysis.preferences.country = country;
+        break;
+      }
+    }
+
+    const budgetMatch = message.match(/(\d+)\s*(доллар|dollar|\$|usd)/i);
+    if (budgetMatch) {
+      analysis.preferences.price_max = parseInt(budgetMatch[1]);
+    }
+
+    return analysis;
   }
 
   /**
@@ -222,4 +514,3 @@ export class AIAgent {
     };
   }
 }
-
