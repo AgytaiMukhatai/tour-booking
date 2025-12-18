@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import TourCard from '../components/TourCard'
 import FilterSection from '../components/FilterSection'
-import { tours, priceRanges, durations } from '../data/tours'
+import { tours as toursData, priceRanges, durations } from '../data/tours'
 
 function ToursPage() {
   const [filters, setFilters] = useState({
@@ -11,9 +11,10 @@ function ToursPage() {
     duration: 'All Durations',
     search: ''
   })
+  const [sortBy, setSortBy] = useState('Featured')
 
   const filteredTours = useMemo(() => {
-    return tours.filter(tour => {
+    return toursData.filter(tour => {
       if (filters.category !== 'All' && tour.category !== filters.category) {
         return false
       }
@@ -49,6 +50,32 @@ function ToursPage() {
     })
   }, [filters])
 
+  // Sort filtered tours
+  const sortedTours = useMemo(() => {
+    let sorted = [...filteredTours]
+    
+    switch (sortBy) {
+      case 'Price: Low to High':
+        sorted.sort((a, b) => a.price - b.price)
+        break
+      case 'Price: High to Low':
+        sorted.sort((a, b) => b.price - a.price)
+        break
+      case 'Duration: Short to Long':
+        sorted.sort((a, b) => a.duration - b.duration)
+        break
+      case 'Rating: Highest':
+        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0))
+        break
+      case 'Featured':
+      default:
+        // Keep original order
+        break
+    }
+    
+    return sorted
+  }, [filteredTours, sortBy])
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-gradient-to-r from-primary-600 to-primary-800 text-white py-20">
@@ -65,20 +92,24 @@ function ToursPage() {
 
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900">
-            {filteredTours.length} {filteredTours.length === 1 ? 'Tour' : 'Tours'} Found
+            {sortedTours.length} {sortedTours.length === 1 ? 'Tour' : 'Tours'} Found
           </h2>
-          <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-            <option>Sort by: Featured</option>
-            <option>Price: Low to High</option>
-            <option>Price: High to Low</option>
-            <option>Duration: Short to Long</option>
-            <option>Rating: Highest</option>
+          <select 
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          >
+            <option value="Featured">Sort by: Featured</option>
+            <option value="Price: Low to High">Price: Low to High</option>
+            <option value="Price: High to Low">Price: High to Low</option>
+            <option value="Duration: Short to Long">Duration: Short to Long</option>
+            <option value="Rating: Highest">Rating: Highest</option>
           </select>
         </div>
 
-        {filteredTours.length > 0 ? (
+        {sortedTours.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredTours.map(tour => (
+            {sortedTours.map(tour => (
               <TourCard key={tour.id} tour={tour} />
             ))}
           </div>

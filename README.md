@@ -2,13 +2,33 @@
 
 A full-stack tour booking platform with a modern React frontend and AI-powered tour recommendation system. This project is organized as a monorepo to facilitate frontend and backend integration.
 
+## Features
+
+* **Tour Listings**: Browse through a curated selection of amazing tours worldwide
+* **Advanced Filters**: Filter tours by category, location, price range, duration, and search by keywords
+* **Tour Details**: View comprehensive information about each tour including highlights, what's included, available dates, and more
+* **Booking System**: Complete booking form with guest information, date selection, and booking confirmation
+* **AI Chat Assistant**: 🤖 Intelligent AI agent that helps users find the perfect tour based on their preferences, budget, and dates
+* **Responsive Design**: Fully responsive layout that works on desktop, tablet, and mobile devices
+* **Modern UI**: Clean, professional design with smooth transitions and hover effects
+
 ## Project Structure
 
 ```
 tour-booking/
 ├── frontend/                    # Frontend React application
-│   ├── frontend_Agytai_Mukhatai.md
-│   ├── src/                    # React source code
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Header.jsx          # Navigation header
+│   │   │   ├── Footer.jsx          # Site footer
+│   │   │   ├── TourCard.jsx        # Tour card component
+│   │   │   ├── FilterSection.jsx  # Filter controls
+│   │   │   └── AIChat.jsx          # AI chat interface
+│   │   ├── pages/
+│   │   │   ├── ToursPage.jsx       # Main tours listing page
+│   │   │   ├── TourDetailPage.jsx  # Individual tour details
+│   │   │   └── BookingPage.jsx     # Booking form and confirmation
+│   │   └── ...
 │   └── package.json
 ├── backend/                    # Backend API with AI Agent
 │   ├── server.js              # Express server
@@ -17,8 +37,16 @@ tour-booking/
 │   │   │   └── chat.js        # AI chat endpoint
 │   │   └── tours.js           # Tours API
 │   └── ai-agent/
-│       └── agent.js            # AI Agent logic
+│       ├── agent.js            # AI Agent logic
+│       ├── mcp-client.js       # MCP client
+│       └── features/
+│           ├── compare-tours.js    # Sub-agent for comparison
+│           └── tour-details.js     # Sub-agent for details
 ├── ai-rules/                   # AI Assistant rules
+│   ├── ai_Gaini_Kutumov.md
+│   ├── backend_Gaini_Kutumov.md
+│   ├── frontend_Agytai_Mukhatai.md
+│   ├── qa_Team.md
 │   └── ai_template.md
 ├── ai-agent/                   # AI Agent architecture
 │   ├── prompts/
@@ -64,6 +92,7 @@ Server runs on `http://localhost:3001`
 - Complete booking system with confirmation
 - Responsive design for all devices
 - Advanced search functionality
+- **AI Chat Interface** - Floating chat widget for tour recommendations
 
 ### Backend & AI Agent
 - 🤖 **AI Chat Assistant** - Intelligent tour recommendation system
@@ -120,6 +149,7 @@ The AI agent uses specialized sub-agents for complex tasks:
 - **Backend Documentation**: [backend/README.md](backend/README.md)
 - **AI Agent Architecture**: [ai-agent/AGENT_ARCHITECTURE.md](ai-agent/AGENT_ARCHITECTURE.md)
 - **Workflow & Process**: [WORKFLOW.md](WORKFLOW.md) - полное описание процесса разработки с использованием AI
+- **Local Setup Guide**: [LOCAL_SETUP.md](LOCAL_SETUP.md) - инструкция по локальному запуску
 
 ## Development
 
